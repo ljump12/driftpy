@@ -1,38 +1,42 @@
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from importlib import resources
-from typing import Optional, TypeVar, Type, cast
-from solana.publickey import PublicKey
+from typing import Optional, Type, TypeVar, cast
+
+from anchorpy import Context, Idl, Program
 from solana.keypair import Keypair
-from solana.transaction import Transaction, TransactionSignature, TransactionInstruction
+from solana.publickey import PublicKey
 from solana.system_program import SYS_PROGRAM_ID
 from solana.sysvar import SYSVAR_RENT_PUBKEY
-from solana.transaction import AccountMeta
+from solana.transaction import (
+    AccountMeta,
+    Transaction,
+    TransactionInstruction,
+    TransactionSignature,
+)
 from spl.token.constants import TOKEN_PROGRAM_ID
-from anchorpy import Program, Context, Idl
+
 from driftpy.addresses import (
     get_user_account_public_key_and_nonce,
     get_user_orders_account_public_key_and_nonce,
 )
+from driftpy.program import load_program
 from driftpy.types import (
-    PositionDirection,
-    StateAccount,
-    MarketsAccount,
-    Market,
-    FundingPaymentHistoryAccount,
-    FundingRateHistoryAccount,
-    TradeHistoryAccount,
-    LiquidationHistoryAccount,
     DepositHistoryAccount,
     ExtendedCurveHistoryAccount,
+    FundingPaymentHistoryAccount,
+    FundingRateHistoryAccount,
+    LiquidationHistoryAccount,
+    Market,
+    MarketsAccount,
+    OrderHistoryAccount,
+    OrderState,
+    PositionDirection,
+    StateAccount,
+    TradeHistoryAccount,
     User,
     UserPositions,
-    OrderState,
-    OrderHistoryAccount,
 )
-
-from driftpy.program import load_program
-
 
 T = TypeVar("T", bound="ClearingHouse")
 
@@ -393,9 +397,20 @@ class ClearingHouse:
         limit_price: Optional[int] = None,
         discount_token: Optional[PublicKey] = None,
         referrer: Optional[PublicKey] = None,
+        user_account: Optional[User] = None,
+        markets_account: Optional[MarketsAccount] = None,
+        state_account: Optional[StateAccount] = None,
     ) -> TransactionSignature:
         ix = await self.get_open_position_ix(
-            direction, amount, market_index, limit_price, discount_token, referrer
+            direction,
+            amount,
+            market_index,
+            limit_price,
+            discount_token,
+            referrer,
+            user_account,
+            markets_account,
+            state_account,
         )
         tx = Transaction().add(ix)
         return await self.program.provider.send(tx)
